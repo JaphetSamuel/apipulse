@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>ApiPulse</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M2 12h4l3-8 4 16 3-8h6' fill='none' stroke='%230f8f86' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f6f8f9; --panel:#ffffff; --soft:#f1f4f5; --line:#e3e8ea; --ink:#14212b; --mute:#64737e;
+  --brand:#0f8f86; --brand-ink:#0a6f68; --brand-soft:#e3f4f2;
+  --ok:#0e7a43; --ok-bg:#e6f5ec; --warn:#9a6208; --warn-bg:#fdf1dc; --bad:#b42323; --bad-bg:#fdeaea; --info:#2456a6; --info-bg:#e8f0fc;
+  --shadow:0 1px 2px rgba(20,33,43,.05);
+  --sans:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0c1317; --panel:#121b20; --soft:#172229; --line:#25333b; --ink:#e5edf1; --mute:#8b9ca6;
+    --brand:#2ec4b6; --brand-ink:#63d9cd; --brand-soft:#0f2f2c;
+    --ok:#4cc58a; --ok-bg:#10281d; --warn:#e0a640; --warn-bg:#2d2312; --bad:#f07b7b; --bad-bg:#331818; --info:#7aa7ee; --info-bg:#15233b;
+    --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:13px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--brand-ink)}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px}
+.mono,.path,pre,code{font-family:var(--mono)}
+
+.app{display:grid;grid-template-columns:208px minmax(0,1fr);min-height:100%}
+.side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;padding:14px 10px}
+.brand{display:flex;align-items:center;gap:9px;padding:4px 8px 14px}
+.brand svg{flex:none}
+.brand b{font-size:15px;letter-spacing:-.01em}
+.brand small{display:block;color:var(--mute);font-size:11.5px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+nav{display:flex;flex-direction:column;gap:2px}
+nav a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:7px;color:var(--mute);text-decoration:none;font-weight:500}
+nav a:hover{background:var(--soft);color:var(--ink)}
+nav a[aria-current=page]{background:var(--brand-soft);color:var(--brand-ink)}
+nav .n{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--bad-bg);color:var(--bad);font-weight:600}
+.side-foot{margin-top:auto;padding:8px;display:grid;gap:8px;color:var(--mute);font-size:11.5px}
+.btn{border:1px solid var(--line);background:var(--panel);padding:6px 11px;border-radius:7px;cursor:pointer;font-weight:500}
+.btn:hover{background:var(--soft)}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+
+main{min-width:0;padding:0 28px 40px}
+.top{display:flex;align-items:center;gap:14px;padding:18px 0 14px;position:sticky;top:0;background:var(--bg);z-index:5}
+.top h1{font-size:19px;margin:0;font-weight:650;letter-spacing:-.015em}
+.top .grow{flex:1}
+.live{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:4px 11px 4px 9px;cursor:pointer;font-weight:500}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.live[aria-pressed=true] i{background:var(--brand);box-shadow:0 0 0 0 var(--brand);animation:beat 2s infinite}
+@keyframes beat{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brand) 55%,transparent)}70%,100%{box-shadow:0 0 0 7px transparent}}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.bar input[type=search],.bar select{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:6px 10px}
+.bar input[type=search]{min-width:230px;flex:1;max-width:340px}
+.bar label{display:inline-flex;align-items:center;gap:6px;color:var(--mute)}
+.bar .count{margin-left:auto;color:var(--mute)}
+
+.strip{height:64px;display:flex;align-items:flex-end;gap:3px;padding:10px 14px 8px;border-bottom:1px solid var(--line)}
+.strip .b{flex:1;min-width:3px;border-radius:2px 2px 0 0;background:var(--brand);opacity:.85;position:relative;min-height:2px}
+.strip .b .e{position:absolute;left:0;right:0;bottom:0;background:var(--bad);border-radius:inherit}
+.strip.empty{align-items:center;justify-content:center;color:var(--mute)}
+
+table{width:100%;border-collapse:collapse}
+th{font-weight:600;color:var(--mute);text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);font-size:12px;white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr[data-open],tbody tr[data-toggle]{cursor:pointer}
+tbody tr[data-open]:hover,tbody tr[data-toggle]:hover{background:var(--soft)}
+tr.sel{background:var(--brand-soft)}
+td.t{white-space:nowrap;width:98px}td.t small{display:block;color:var(--mute);font-size:11.5px}
+td.dur,th.dur{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.req .path{font-size:12.5px;word-break:break-all}.req .q{color:var(--mute);font-family:var(--mono);font-size:12px;word-break:break-all}
+.meta{display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--mute);font-size:12px;margin-top:3px}
+.meta .x{color:var(--bad);font-weight:600}
+.m{font-family:var(--mono);font-weight:700;font-size:12px;margin-right:6px}
+.m.GET{color:var(--brand-ink)}.m.POST{color:var(--info)}.m.PUT,.m.PATCH{color:var(--warn)}.m.DELETE{color:var(--bad)}
+.chip{display:inline-block;font-family:var(--mono);font-size:12px;font-weight:600;border:1px solid;border-radius:6px;padding:0 7px;line-height:20px}
+.s2{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:var(--ok-bg)}
+.s3{color:var(--info);border-color:color-mix(in srgb,var(--info) 45%,transparent);background:var(--info-bg)}
+.s4{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-bg)}
+.s5{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent);background:var(--bad-bg)}
+.lvl{font-size:11.5px;font-weight:600;padding:0 7px;border-radius:5px;line-height:19px;display:inline-block;background:var(--soft);color:var(--mute)}
+.lvl.Warning{background:var(--warn-bg);color:var(--warn)}.lvl.Error,.lvl.Critical{background:var(--bad-bg);color:var(--bad)}.lvl.Information{background:var(--info-bg);color:var(--info)}
+.slow{color:var(--warn)}.vslow{color:var(--bad)}
+
+.empty-state{padding:54px 24px;text-align:center;color:var(--mute)}
+.empty-state b{display:block;color:var(--ink);font-size:14px;margin-bottom:4px}
+.more{display:block;width:100%;padding:11px;border:0;border-top:1px solid var(--line);background:var(--panel);color:var(--brand-ink);cursor:pointer;font-weight:600}
+.more:hover{background:var(--soft)}
+.notice{border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:9px 13px;margin-bottom:12px}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 15px;box-shadow:var(--shadow)}
+.card .k{color:var(--mute);font-size:12px}.card .v{font-size:24px;font-weight:650;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}.card .v small{font-size:13px;color:var(--mute);font-weight:500;margin-left:2px}
+.chart{padding:14px 16px 8px}
+.chart svg{width:100%;height:150px;display:block}
+.chart .axis{display:flex;justify-content:space-between;color:var(--mute);font-size:11.5px;margin-top:4px}
+.split{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--soft);margin:10px 0 6px}
+.split i{display:block;height:100%}
+.legend{display:flex;gap:14px;color:var(--mute);font-size:12px;flex-wrap:wrap}
+.legend b{color:var(--ink)}.legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:currentColor}
+h2{font-size:13.5px;margin:20px 0 8px;font-weight:650}
+
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(760px,100%);background:var(--panel);border-left:1px solid var(--line);box-shadow:-18px 0 40px rgba(0,0,0,.14);display:flex;flex-direction:column;z-index:20;animation:slide .16s ease-out}
+@keyframes slide{from{transform:translateX(24px);opacity:0}}
+.drawer[hidden]{display:none}
+.dh{padding:16px 20px 0;border-bottom:1px solid var(--line)}
+.dh .row{display:flex;align-items:flex-start;gap:10px}
+.dh h3{margin:0;font-size:15px;word-break:break-all;flex:1;font-weight:600}
+.dh .sub{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--mute);margin:6px 0 12px;font-size:12px}
+.x-btn{border:0;background:transparent;font-size:20px;line-height:1;cursor:pointer;color:var(--mute);padding:2px 6px;border-radius:6px}
+.x-btn:hover{background:var(--soft);color:var(--ink)}
+.tabs{display:flex;gap:2px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:8px 12px;color:var(--mute);cursor:pointer;border-bottom:2px solid transparent;font-weight:500;white-space:nowrap}
+.tabs button[aria-selected=true]{color:var(--brand-ink);border-color:var(--brand)}
+.tabs .c{font-size:11px;margin-left:5px;padding:0 6px;border-radius:99px;background:var(--soft);color:var(--mute)}
+.tabs .c.bad{background:var(--bad-bg);color:var(--bad)}
+.db{padding:18px 20px 40px;overflow:auto;flex:1}
+.kv{display:grid;grid-template-columns:130px minmax(0,1fr);gap:7px 14px;margin:0 0 18px}
+.kv dt{color:var(--mute)}.kv dd{margin:0;word-break:break-all}
+.kv .tag{display:inline-block;background:var(--soft);border-radius:5px;padding:0 7px;margin:0 6px 4px 0;font-family:var(--mono);font-size:12px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin:0 0 14px;overflow:auto;font-size:12px;line-height:1.5;max-height:420px;white-space:pre-wrap;word-break:break-word}
+.hdrs{width:100%;margin-bottom:16px}.hdrs td{padding:5px 0;border:0;font-family:var(--mono);font-size:12px;word-break:break-all}.hdrs td:first-child{color:var(--mute);width:38%;padding-right:12px}
+.trunc{color:var(--warn);font-size:12px;margin:-8px 0 14px}
+
+.tl{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tl .ax{display:grid;grid-template-columns:minmax(120px,36%) 1fr;color:var(--mute);font-size:11.5px;border-bottom:1px solid var(--line);background:var(--soft)}
+.tl .ax div:last-child{display:flex;justify-content:space-between;padding:5px 10px}
+.tl .ax div:first-child{padding:5px 12px}
+.tl .r{display:grid;grid-template-columns:minmax(120px,36%) 1fr;border-bottom:1px solid var(--line);align-items:center;min-height:32px}
+.tl .r:last-child{border-bottom:0}
+.tl .lb{padding:5px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
+.tl .lb small{color:var(--mute);margin-left:6px}
+.tl .tr{position:relative;height:32px;margin:0 10px;background-image:linear-gradient(to right,var(--line) 1px,transparent 1px);background-size:25% 100%}
+.tl .bar-s{position:absolute;top:9px;height:14px;border-radius:4px;background:var(--brand);min-width:3px}
+.tl .bar-s.req{background:color-mix(in srgb,var(--brand) 35%,var(--panel));border:1px solid var(--brand)}
+.tl .dot{position:absolute;top:11px;width:10px;height:10px;border-radius:50%;margin-left:-5px;background:var(--info)}
+.tl .dot.Warning{background:var(--warn)}.tl .dot.Error,.tl .dot.Critical,.tl .dot.ex{background:var(--bad)}
+.tl .dot.Debug,.tl .dot.Trace{background:var(--mute)}
+.tl .dur-l{position:absolute;top:8px;font-size:11.5px;color:var(--mute);white-space:nowrap}
+.tl .lg{cursor:default}
+.tl-note{color:var(--mute);margin:10px 2px 0;font-size:12px}
+.sev{font-weight:600}
+.link{background:none;border:0;padding:0;color:var(--brand-ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.ex-card{border:1px solid var(--line);border-radius:9px;margin-bottom:12px;overflow:hidden}
+.ex-card h4{margin:0;padding:10px 13px;font-size:13px;background:var(--soft);word-break:break-all}
+.ex-card .in{padding:10px 13px}
+.ex-card pre{margin:8px 0 0}
+tr.detail td{background:var(--soft);padding:12px 14px}
+tr.detail pre{margin:0 0 8px}
+
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:8px;gap:6px}
+  .brand{padding:2px 8px}
+  nav{flex-direction:row;flex-wrap:wrap}
+  .side-foot{margin:0 0 0 auto;display:flex;align-items:center}
+  main{padding:0 14px 30px}
+  .top{flex-wrap:wrap}
+  .kv{grid-template-columns:100px 1fr}
+}
+@media (prefers-reduced-motion:reduce){.drawer{animation:none}.live[aria-pressed=true] i{animation:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="var(--brand)"/><path d="M3.5 12.5h4l2.5-6 4 11 2.5-5h4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><b>ApiPulse</b><small id="svc">&nbsp;</small></div>
+    </div>
+    <nav id="nav" aria-label="Sections">
+      <a href="#/overview" data-r="overview">Overview</a>
+      <a href="#/requests" data-r="requests">Requests</a>
+      <a href="#/exceptions" data-r="exceptions">Exceptions <span class="n" id="exn" hidden></span></a>
+      <a href="#/logs" data-r="logs">Logs</a>
+      <a href="#/spans" data-r="spans">Outgoing calls</a>
+    </nav>
+    <div class="side-foot">
+      <span id="cap"></span>
+      <button class="btn danger" id="clear" type="button">Clear entries</button>
+    </div>
+  </aside>
+  <main>
+    <header class="top">
+      <h1 id="title">Requests</h1>
+      <span class="grow"></span>
+      <button class="live" id="live" type="button" aria-pressed="true" title="Refresh every 2 seconds"><i></i><span>Live</span></button>
+    </header>
+    <section id="view" aria-live="polite"></section>
+  </main>
+</div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="false" aria-label="Request details"></aside>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const BASE = location.origin + location.pathname.replace(/[^/]*$/, '');
+const S = { route: 'requests', id: null, live: true, f: { status: '', method: '', errors: false, q: '' }, lf: { level: '', q: '' }, sf: { q: '' },
+            items: [], latest: 0, total: 0, hasMore: false, info: null, window: 60, openEx: null, tab: 'timeline', detail: null, sig: '' };
+
+async function api(path, params = {}) {
+  const u = new URL('api/' + path, BASE);
+  for (const [k, v] of Object.entries(params)) if (v !== '' && v != null && v !== false) u.searchParams.set(k, v === true ? '1' : v);
+  const r = await fetch(u, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+  if (!r.ok) throw new Error(r.status === 403 ? 'Access denied' : 'HTTP ' + r.status);
+  return r.json();
+}
+
+// ------------------------------------------------------------ formatting
+const pad = n => String(n).padStart(2, '0');
+const clock = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+const ago = iso => { const s = Math.max(0, (Date.now() - new Date(iso)) / 1000);
+  if (s < 5) return 'just now'; if (s < 60) return Math.floor(s) + ' s ago'; if (s < 3600) return Math.floor(s / 60) + ' min ago';
+  if (s < 86400) return Math.floor(s / 3600) + ' h ago'; return new Date(iso).toLocaleDateString(); };
+const ms = v => v == null ? '' : v >= 1000 ? (v / 1000).toFixed(2) + ' s' : v >= 100 ? Math.round(v) + ' ms' : v.toFixed(v < 10 ? 1 : 0) + ' ms';
+const bytes = v => v == null ? '' : v < 1024 ? v + ' B' : v < 1048576 ? (v / 1024).toFixed(1) + ' KB' : (v / 1048576).toFixed(1) + ' MB';
+const chip = s => `<span class="chip s${Math.floor(s / 100)}">${esc(s)}</span>`;
+const durCls = v => v >= 1000 ? 'vslow' : v >= 300 ? 'slow' : '';
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const empty = (title, text) => `<div class="empty-state"><b>${esc(title)}</b>${esc(text)}</div>`;
+
+function pretty(text, type) {
+  if (text == null) return '';
+  if (/json/i.test(type || '') || /^\s*[\[{]/.test(text)) { try { return JSON.stringify(JSON.parse(text), null, 2); } catch { /* not complete JSON */ } }
+  return text;
+}
+
+// ------------------------------------------------------------ routing
+function parseHash() {
+  const [, r = 'requests', id = null] = location.hash.split('/');
+  S.route = ['overview', 'requests', 'exceptions', 'logs', 'spans'].includes(r) ? r : 'requests';
+  S.id = id ? decodeURIComponent(id) : null;
+}
+const titles = { overview: 'Overview', requests: 'Requests', exceptions: 'Exceptions', logs: 'Logs', spans: 'Outgoing calls' };
+
+async function navigate() {
+  parseHash();
+  $('#title').textContent = titles[S.route];
+  document.title = titles[S.route] + ' · ApiPulse';
+  for (const a of document.querySelectorAll('#nav a')) {
+    if (a.dataset.r === S.route) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  }
+  S.sig = '';
+  await renderView(true);
+  if (S.id && S.route === 'requests') openDrawer(S.id); else closeDrawer(false);
+}
+
+// ------------------------------------------------------------ views
+async function renderView(full) {
+  const v = $('#view');
+  try {
+    if (S.route === 'overview') await viewOverview(v, full);
+    else if (S.route === 'requests') await viewRequests(v, full);
+    else if (S.route === 'exceptions') await viewExceptions(v);
+    else if (S.route === 'logs') await viewLogs(v, full);
+    else await viewSpans(v, full);
+  } catch (e) {
+    v.innerHTML = `<div class="panel">${empty('Cannot load data', e.message + '. Check that the application is still running, then reload.')}</div>`;
+  }
+}
+
+async function viewRequests(v, full, append) {
+  if (full) {
+    v.innerHTML = `
+      <div class="bar">
+        <input type="search" id="q" placeholder="Search path, consumer, trace id" value="${esc(S.f.q)}" aria-label="Search requests">
+        <select id="fs" aria-label="Status"><option value="">All statuses</option>${['2xx','3xx','4xx','5xx'].map(x => `<option ${S.f.status === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
+        <select id="fm" aria-label="Method"><option value="">All methods</option>${['GET','POST','PUT','PATCH','DELETE'].map(x => `<option ${S.f.method === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
+        <label><input type="checkbox" id="fe" ${S.f.errors ? 'checked' : ''}> Errors only</label>
+        <span class="count" id="cnt"></span>
+      </div>
+      <div class="panel"><div id="strip" class="strip empty">&nbsp;</div><div id="list"></div></div>`;
+    $('#q').addEventListener('input', debounce(e => { S.f.q = e.target.value; reloadRequests(); }, 250));
+    $('#fs').addEventListener('change', e => { S.f.status = e.target.value; reloadRequests(); });
+    $('#fm').addEventListener('change', e => { S.f.method = e.target.value; reloadRequests(); });
+    $('#fe').addEventListener('change', e => { S.f.errors = e.target.checked; reloadRequests(); });
+  }
+  await loadRequests(append);
+}
+
+async function reloadRequests() { S.sig = ''; S.items = []; await loadRequests(false); }
+
+async function loadRequests(append) {
+  const before = append && S.items.length ? S.items[S.items.length - 1].seq : '';
+  const limit = append ? 50 : Math.min(200, Math.max(50, S.items.length));
+  const [r, o] = await Promise.all([api('requests', { ...S.f, limit, before }), append ? null : api('overview', { window: 60 })]);
+  if (o) { strip(o); badge(o); }
+  const sig = r.latest + ':' + r.total + ':' + S.items.length;
+  if (!append && sig === S.sig && S.items.length) return;
+  S.items = append ? S.items.concat(r.items) : r.items;
+  S.latest = r.latest; S.total = r.total; S.hasMore = r.hasMore;
+  S.sig = r.latest + ':' + r.total + ':' + S.items.length;
+  drawRequests(r.stored);
+}
+
+function drawRequests(stored) {
+  const list = $('#list'); if (!list) return;
+  $('#cnt').textContent = S.total ? plural(S.total, 'request') : '';
+  if (!S.items.length) {
+    const filtered = S.f.status || S.f.method || S.f.errors || S.f.q;
+    list.innerHTML = filtered ? empty('No requests match', 'Clear a filter to see more.')
+      : empty('No requests yet', 'Send a request to your API and it appears here within a second.');
+    return;
+  }
+  const body = S.items.map(r => {
+    const meta = [];
+    if (r.route && r.route !== r.path) meta.push(`<span class="mono">${esc(r.route)}</span>`);
+    if (r.consumer) meta.push(`<span>${esc(r.consumer)}</span>`);
+    if (r.responseSize != null) meta.push(`<span>${bytes(r.responseSize)}</span>`);
+    if (r.logs) meta.push(`<span>${plural(r.logs, 'log')}</span>`);
+    if (r.spans) meta.push(`<span>${plural(r.spans, 'span')}</span>`);
+    if (r.exceptions) meta.push(`<span class="x">${plural(r.exceptions, 'exception')}</span>`);
+    if (r.aborted) meta.push('<span>client disconnected</span>');
+    if (!r.sampled) meta.push('<span>summary only</span>');
+    return `<tr data-open="${esc(r.id)}" class="${r.id === S.id ? 'sel' : ''}" tabindex="0">
+      <td class="t">${clock(r.timestamp)}<small>${ago(r.timestamp)}</small></td>
+      <td>${chip(r.status)}</td>
+      <td class="req"><div><span class="m ${esc(r.method)}">${esc(r.method)}</span><span class="path">${esc(r.path)}</span><span class="q">${esc(r.query || '')}</span></div>
+        ${meta.length ? `<div class="meta">${meta.join('')}</div>` : ''}</td>
+      <td class="dur ${durCls(r.durationMs)}">${ms(r.durationMs)}</td></tr>`;
+  }).join('');
+  list.innerHTML = `<table><thead><tr><th>Time</th><th>Status</th><th>Request</th><th class="dur">Duration</th></tr></thead><tbody>${body}</tbody></table>
+    ${S.hasMore ? '<button class="more" type="button" id="more">Show older requests</button>' : ''}`;
+  const more = $('#more'); if (more) more.onclick = () => loadRequests(true);
+}
+
+function strip(o) {
+  const el = $('#strip'); if (!el) return;
+  const max = Math.max(1, ...o.buckets.map(b => b.count));
+  if (!o.total) { el.className = 'strip empty'; el.textContent = 'Traffic of the last hour appears here'; return; }
+  el.className = 'strip';
+  el.innerHTML = o.buckets.map(b => `<div class="b" style="height:${Math.max(3, b.count / max * 100)}%;${b.count ? '' : 'opacity:.22'}" title="${esc(clock(b.t))}: ${plural(b.count, 'request')}${b.errors ? ', ' + b.errors + ' failed' : ''}">${b.errors ? `<div class="e" style="height:${b.errors / b.count * 100}%"></div>` : ''}</div>`).join('');
+}
+
+function badge(o) {
+  const n = $('#exn'); n.hidden = !o.requestsWithExceptions; n.textContent = o.requestsWithExceptions;
+  $('#cap').textContent = `${o.stored} of ${o.capacity} entries kept`;
+}
+
+async function viewOverview(v, full) {
+  const o = await api('overview', { window: S.window });
+  badge(o);
+  // Skip redraws when nothing changed, so an open dropdown or a text selection is not thrown away every 2 seconds.
+  const sig = `${S.window}:${o.total}:${o.stored}:${o.p95Ms}`;
+  if (!full && sig === S.sig) return;
+  S.sig = sig;
+  const t = o.total, st = o.status, fail = st.c5xx + o.requestsWithExceptions;
+  const rate = t ? Math.min(100, fail / t * 100) : 0;
+  const max = Math.max(1, ...o.buckets.map(b => b.count));
+  const bw = 100 / o.buckets.length;
+  const bars = o.buckets.map((b, i) => {
+    const h = b.count / max * 136, eh = Math.min(h, b.errors / max * 136);
+    return `<g><title>${esc(clock(b.t))}: ${plural(b.count, 'request')}${b.errors ? ', ' + b.errors + ' failed' : ''}, avg ${ms(b.avgMs)}</title>
+      <rect x="${i * bw + .35}" y="${144 - h}" width="${bw - .7}" height="${Math.max(h, b.count ? 2 : 0)}" rx=".6" fill="var(--brand)" opacity=".85"/>
+      ${eh ? `<rect x="${i * bw + .35}" y="${144 - eh}" width="${bw - .7}" height="${eh}" rx=".6" fill="var(--bad)"/>` : ''}</g>`;
+  }).join('');
+  const pct = n => t ? n / t * 100 : 0;
+  v.innerHTML = `
+    <div class="bar"><select id="win" aria-label="Time window">${[[15,'Last 15 minutes'],[60,'Last hour'],[360,'Last 6 hours'],[1440,'Last 24 hours']].map(([m, l]) => `<option value="${m}" ${S.window === m ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <span class="count">Based on the ${o.stored} most recent requests kept in memory</span></div>
+    ${t === 0 ? `<div class="panel">${empty('No traffic in this window', 'Send a request to your API, or choose a longer window.')}</div>` : `
+    <div class="cards">
+      <div class="card"><div class="k">Requests</div><div class="v">${t}</div></div>
+      <div class="card"><div class="k">Failed (5xx or exception)</div><div class="v ${rate > 5 ? 'vslow' : ''}">${rate.toFixed(rate < 10 && rate > 0 ? 1 : 0)}<small>%</small></div></div>
+      <div class="card"><div class="k">Median</div><div class="v">${ms(o.p50Ms)}</div></div>
+      <div class="card"><div class="k">95th percentile</div><div class="v">${ms(o.p95Ms)}</div><div class="k">99th: ${ms(o.p99Ms)}</div></div>
+    </div>
+    <div class="panel chart"><svg viewBox="0 0 100 144" preserveAspectRatio="none" role="img" aria-label="Requests over time">${bars}</svg>
+      <div class="axis"><span>${clock(o.buckets[0].t)}</span><span>${clock(o.buckets[Math.floor(o.buckets.length / 2)].t)}</span><span>now</span></div>
+      <div class="split" aria-hidden="true"><i style="width:${pct(st.c2xx)}%;background:var(--ok)"></i><i style="width:${pct(st.c3xx)}%;background:var(--info)"></i><i style="width:${pct(st.c4xx)}%;background:var(--warn)"></i><i style="width:${pct(st.c5xx)}%;background:var(--bad)"></i></div>
+      <div class="legend"><span style="color:var(--ok)"><b>${st.c2xx}</b> success</span><span style="color:var(--info)"><b>${st.c3xx}</b> redirect</span><span style="color:var(--warn)"><b>${st.c4xx}</b> client error</span><span style="color:var(--bad)"><b>${st.c5xx}</b> server error</span></div></div>
+    <h2>Busiest routes</h2>
+    <div class="panel"><table><thead><tr><th>Route</th><th class="dur">Requests</th><th class="dur">Average</th><th class="dur">95th pct</th><th class="dur">4xx</th><th class="dur">5xx</th></tr></thead><tbody>
+      ${o.topRoutes.map(r => `<tr data-route="${esc(r.route)}" data-method="${esc(r.method)}" class="" tabindex="0" style="cursor:pointer"><td><span class="m ${esc(r.method)}">${esc(r.method)}</span><span class="path">${esc(r.route)}</span></td><td class="dur">${r.count}</td><td class="dur ${durCls(r.avgMs)}">${ms(r.avgMs)}</td><td class="dur ${durCls(r.p95Ms)}">${ms(r.p95Ms)}</td><td class="dur">${r.clientErrors || ''}</td><td class="dur ${r.serverErrors ? 'vslow' : ''}">${r.serverErrors || ''}</td></tr>`).join('')}
+    </tbody></table></div>`}`;
+  $('#win').onchange = e => { S.window = +e.target.value; renderView(true); };
+}
+
+async function viewExceptions(v) {
+  const [r, o] = await Promise.all([api('exceptions'), api('overview', { window: 60 })]);
+  badge(o);
+  const sig = r.items.map(x => x.fingerprint + x.count).join() + '|' + S.openEx;
+  if (sig === S.sig) return; // keep a selected stack trace selected while polling
+  S.sig = sig;
+  if (!r.items.length) { v.innerHTML = `<div class="panel">${empty('No exceptions', 'Errors thrown by your endpoints appear here, grouped so one bug is one row.')}</div>`; return; }
+  v.innerHTML = `<div class="panel"><table><thead><tr><th class="dur">Seen</th><th>Exception</th><th>Where</th><th>Last seen</th></tr></thead><tbody>
+    ${r.items.map(x => `<tr data-toggle="${esc(x.fingerprint)}" tabindex="0"><td class="dur"><b>${x.count}</b></td>
+      <td><span class="path">${esc(x.type)}</span> ${x.unhandled ? '<span class="chip s5">unhandled</span>' : '<span class="chip s4">handled</span>'}<div class="meta"><span>${esc(x.message)}</span></div></td>
+      <td><div class="meta" style="margin:0">${x.routes.map(a => `<span class="mono">${esc(a)}</span>`).join('')}</div></td>
+      <td class="t">${clock(x.lastSeen)}<small>${ago(x.lastSeen)}</small></td></tr>
+      ${S.openEx === x.fingerprint ? `<tr class="detail"><td></td><td colspan="3"><pre>${esc(x.stackTrace || 'No stack trace')}</pre><button class="link" data-open="${esc(x.latestRequestId)}" type="button">Open the latest request</button></td></tr>` : ''}`).join('')}
+    </tbody></table></div>`;
+}
+
+async function viewLogs(v, full) {
+  if (full) {
+    v.innerHTML = `<div class="bar"><input type="search" id="lq" placeholder="Search messages and categories" value="${esc(S.lf.q)}" aria-label="Search logs">
+      <select id="ll" aria-label="Minimum level"><option value="">All levels</option>${['Information','Warning','Error'].map(x => `<option value="${x}" ${S.lf.level === x ? 'selected' : ''}>${x} and above</option>`).join('')}</select></div>
+      <div class="panel" id="list"></div>`;
+    $('#lq').addEventListener('input', debounce(e => { S.lf.q = e.target.value; S.sig = ''; renderView(false); }, 250));
+    $('#ll').addEventListener('change', e => { S.lf.level = e.target.value; S.sig = ''; renderView(false); });
+  }
+  const [r, o] = await Promise.all([api('logs', S.lf), api('overview', { window: 60 })]);
+  badge(o);
+  const sig = JSON.stringify(r.items.slice(0, 3)) + r.items.length;
+  if (sig === S.sig) return; S.sig = sig;
+  $('#list').innerHTML = !r.items.length ? empty('No log entries', 'Logs written while a request is handled are listed here, linked to that request.')
+    : `<table><thead><tr><th>Time</th><th>Level</th><th>Message</th></tr></thead><tbody>${r.items.map(l => `<tr data-open="${esc(l.requestId)}" tabindex="0">
+      <td class="t">${clock(l.time)}</td><td><span class="lvl ${esc(l.level)}">${esc(l.level)}</span></td>
+      <td>${esc(l.message)}<div class="meta"><span class="mono">${esc(l.category)}</span><span class="mono">${esc(l.request)} · ${esc(l.status)}</span>${l.hasException ? '<span class="x">with exception</span>' : ''}</div></td></tr>`).join('')}</tbody></table>`;
+}
+
+async function viewSpans(v, full) {
+  if (full) {
+    v.innerHTML = `<div class="bar"><input type="search" id="sq" placeholder="Search by name, host or source" value="${esc(S.sf.q)}" aria-label="Search outgoing calls"></div><div class="panel" id="list"></div>`;
+    $('#sq').addEventListener('input', debounce(e => { S.sf.q = e.target.value; S.sig = ''; renderView(false); }, 250));
+  }
+  const [r, o] = await Promise.all([api('spans', S.sf), api('overview', { window: 60 })]);
+  badge(o);
+  const sig = JSON.stringify(r.items.slice(0, 3)) + r.items.length;
+  if (sig === S.sig) return; S.sig = sig;
+  $('#list').innerHTML = !r.items.length ? empty('No outgoing calls', 'HTTP calls, database calls and custom spans made while handling a request are listed here.')
+    : `<table><thead><tr><th>Time</th><th>Operation</th><th class="dur">Duration</th></tr></thead><tbody>${r.items.map(s => {
+      const target = s.tags?.['url.full'] || s.tags?.['http.url'] || (s.tags?.['server.address'] ? s.tags['server.address'] : '') || s.tags?.['db.system'] || '';
+      return `<tr data-open="${esc(s.requestId)}" tabindex="0"><td class="t">${clock(s.time)}</td>
+        <td><b>${esc(s.name)}</b> ${s.status === 'Error' ? '<span class="chip s5">error</span>' : ''}<div class="meta">${target ? `<span class="mono">${esc(target)}</span>` : ''}<span>${esc(s.kind)}</span><span>${esc(s.source)}</span><span class="mono">in ${esc(s.request)}</span></div></td>
+        <td class="dur ${durCls(s.durationMs)}">${ms(s.durationMs)}</td></tr>`; }).join('')}</tbody></table>`;
+}
+
+// ------------------------------------------------------------ drawer
+async function openDrawer(id) {
+  S.id = id;
+  const d = $('#drawer'); d.hidden = false;
+  d.innerHTML = `<div class="db">${empty('Loading', '')}</div>`;
+  try { S.detail = await api('requests/' + encodeURIComponent(id)); }
+  catch { d.innerHTML = `<div class="dh"><div class="row"><h3>Request not found</h3><button class="x-btn" data-close aria-label="Close">×</button></div></div><div class="db">${empty('This request is no longer stored', 'Entries are dropped when the buffer is full or cleared.')}</div>`; return; }
+  const e = S.detail;
+  if (S.tab === 'logs' && !e.logs?.length || S.tab === 'exceptions' && !e.exceptions?.length || S.tab === 'spans' && !e.spans?.length) S.tab = 'timeline';
+  drawDrawer();
+  for (const r of document.querySelectorAll('tr.sel')) r.classList.remove('sel');
+  for (const r of document.querySelectorAll(`tr[data-open="${CSS.escape(id)}"]`)) r.classList.add('sel');
+}
+
+function closeDrawer(updateHash = true) {
+  $('#drawer').hidden = true; S.id = null; S.detail = null;
+  for (const r of document.querySelectorAll('tr.sel')) r.classList.remove('sel');
+  if (updateHash && /^#\/requests\//.test(location.hash)) history.replaceState(null, '', '#/requests');
+}
+
+function drawDrawer() {
+  const e = S.detail, d = $('#drawer');
+  const tabs = [['timeline', 'Timeline'], ['request', 'Request'], ['response', 'Response'],
+    ...(e.logs?.length ? [['logs', 'Logs', e.logs.length]] : []), ...(e.exceptions?.length ? [['exceptions', 'Exceptions', e.exceptions.length, 1]] : []), ...(e.spans?.length ? [['spans', 'Spans', e.spans.length]] : [])];
+  d.innerHTML = `<div class="dh"><div class="row"><h3><span class="m ${esc(e.method)}">${esc(e.method)}</span>${esc(e.path)}</h3>${chip(e.statusCode)}<button class="x-btn" data-close type="button" aria-label="Close details">×</button></div>
+    <div class="sub"><span>${new Date(e.timestamp).toLocaleString()}</span><span class="${durCls(e.durationMs)}">${ms(e.durationMs)}</span>${e.route && e.route !== e.path ? `<span class="mono">${esc(e.route)}</span>` : ''}${e.consumer ? `<span>${esc(e.consumer.name || e.consumer.id)}</span>` : ''}${e.traceId ? `<span>trace <button class="link mono" data-copy="${esc(e.traceId)}" type="button" title="Copy trace id">${esc(e.traceId.slice(0, 8))}…</button></span>` : ''}</div>
+    <div class="tabs" role="tablist">${tabs.map(([k, l, n, bad]) => `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${l}${n ? `<span class="c ${bad ? 'bad' : ''}">${n}</span>` : ''}</button>`).join('')}</div></div>
+    <div class="db" id="tabbody"></div>`;
+  const b = $('#tabbody');
+  b.innerHTML = { timeline, request: reqTab, response: resTab, logs: logsTab, exceptions: exTab, spans: spansTab }[S.tab](e);
+}
+
+function timeline(e) {
+  const total = Math.max(e.durationMs, 1), start = Date.parse(e.timestamp);
+  const pos = o => Math.min(100, Math.max(0, o / total * 100));
+  const rows = [];
+  for (const s of e.spans || []) {
+    const left = pos(s.startOffsetMs), width = Math.max(.8, s.durationMs / total * 100), end = left + width;
+    const target = (s.tags?.['url.full'] || s.tags?.['http.url'] || '').replace(/^https?:\/\//, '') || s.tags?.['db.system'] || s.kind;
+    // Put the duration after the bar, or before it when the bar runs close to the right edge.
+    const labelPos = end > 78 ? `right:${100 - left + 1}%` : `left:${end + 1}%`;
+    rows.push({ o: s.startOffsetMs, html: `<div class="r"><div class="lb" title="${esc(s.name + ' ' + target)}">${esc(s.name)}<small>${esc(target)}</small></div><div class="tr"><div class="bar-s" style="left:${left}%;width:${width}%;${s.status === 'Error' ? 'background:var(--bad)' : ''}"></div><span class="dur-l" style="${labelPos}">${ms(s.durationMs)}</span></div></div>` });
+  }
+  for (const l of e.logs || []) {
+    const o = Date.parse(l.timestamp) - start, p = pos(o);
+    const labelPos = p > 80 ? `right:${100 - p + 2}%` : `left:${p + 1.5}%`; // keep the label clear of its own dot
+    rows.push({ o, html: `<div class="r lg"><div class="lb" title="${esc(l.message)}"><span class="lvl ${esc(l.level)}">${esc(l.level)}</span> ${esc(l.message)}</div><div class="tr"><div class="dot ${esc(l.level)}" style="left:${p}%"></div><span class="dur-l" style="${labelPos}">+${ms(Math.max(0, o))}</span></div></div>` });
+  }
+  for (const x of e.exceptions || []) rows.push({ o: total, html: `<div class="r"><div class="lb" title="${esc(x.message)}"><span class="chip s5">${x.handled ? 'handled' : 'unhandled'}</span> ${esc(x.type.split('.').pop())}</div><div class="tr"><div class="dot ex" style="left:99%"></div></div></div>` });
+  rows.sort((a, b) => a.o - b.o);
+  return `<div class="tl"><div class="ax"><div>Everything that happened in this request</div><div><span>0</span><span>${ms(total / 2)}</span><span>${ms(total)}</span></div></div>
+    <div class="r"><div class="lb"><b>${esc(e.method)} ${esc(e.route || e.path)}</b></div><div class="tr"><div class="bar-s req" style="left:0;width:100%"></div></div></div>
+    ${rows.map(r => r.html).join('')}</div>
+    ${rows.length ? '' : '<p class="tl-note">No logs, spans or exceptions were recorded for this request.</p>'}
+    ${e.sampled ? '' : '<p class="tl-note">This request was not sampled, so only a summary and its warnings and errors were kept.</p>'}`;
+}
+
+const kv = pairs => `<dl class="kv">${pairs.filter(p => p[1] != null && p[1] !== '').map(([k, v, raw]) => `<dt>${esc(k)}</dt><dd>${raw ? v : esc(v)}</dd>`).join('')}</dl>`;
+const hdrs = h => !h || !Object.keys(h).length ? '<p class="tl-note">No headers captured.</p>' : `<table class="hdrs"><tbody>${Object.entries(h).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</tbody></table>`;
+const bodyBlock = (text, trunc, type) => text == null ? '<p class="tl-note">No body captured. Enable CaptureRequestBody / CaptureResponseBody to see payloads.</p>' : `<pre>${esc(pretty(text, type))}</pre>${trunc ? '<p class="trunc">Body truncated at the configured maximum size.</p>' : ''}`;
+const tags = t => t && Object.keys(t).length ? Object.entries(t).map(([k, v]) => `<span class="tag">${esc(k)}=${esc(v)}</span>`).join('') : '';
+
+function reqTab(e) {
+  const type = e.requestHeaders?.['Content-Type'];
+  return kv([['URL', `${e.scheme || ''}://${e.host || ''}${e.path}${e.query || ''}`], ['Route', e.route], ['Endpoint', e.endpoint], ['Protocol', e.protocol], ['Client IP', e.clientIp], ['Size', e.requestSize != null ? bytes(e.requestSize) : ''],
+    ['Consumer', e.consumer ? [e.consumer.name, e.consumer.id, e.consumer.group].filter(Boolean).join(' · ') : ''], ['Tags', tags(e.tags), true], ['Trace', e.traceId], ['Span', e.spanId]])
+    + '<h2>Headers</h2>' + hdrs(e.requestHeaders) + '<h2>Body</h2>' + bodyBlock(e.requestBody, e.requestBodyTruncated, type);
+}
+function resTab(e) {
+  return kv([['Status', e.statusCode], ['Size', e.responseSize != null ? bytes(e.responseSize) : ''], ['Duration', ms(e.durationMs)]])
+    + '<h2>Headers</h2>' + hdrs(e.responseHeaders) + '<h2>Body</h2>' + bodyBlock(e.responseBody, e.responseBodyTruncated, e.responseHeaders?.['Content-Type']);
+}
+function logsTab(e) {
+  return `<table class="hdrs"><tbody>${e.logs.map(l => `<tr><td style="width:96px">${clock(l.timestamp)}<br><span class="lvl ${esc(l.level)}">${esc(l.level)}</span></td><td style="font-family:var(--sans);font-size:13px">${esc(l.message)}<div class="meta mono"><span>${esc(l.category)}</span></div>${l.properties ? `<div style="margin-top:4px">${tags(l.properties)}</div>` : ''}${l.exception ? `<pre style="margin-top:6px">${esc(l.exception.type + ': ' + l.exception.message)}</pre>` : ''}</td></tr>`).join('')}</tbody></table>${e.droppedLogs ? `<p class="trunc">${plural(e.droppedLogs, 'more entry')} dropped: the per-request limit was reached.</p>` : ''}`;
+}
+function exTab(e) {
+  const one = x => `<div class="ex-card"><h4>${esc(x.type)} ${x.handled ? '<span class="chip s4">handled</span>' : '<span class="chip s5">unhandled</span>'}</h4><div class="in">${esc(x.message)}<pre>${esc(x.stackTrace || 'No stack trace')}</pre>${x.inner ? `<div class="meta"><span>Caused by</span></div>${one(x.inner)}` : ''}</div></div>`;
+  return e.exceptions.map(one).join('');
+}
+function spansTab(e) {
+  return `<table class="hdrs"><tbody>${e.spans.map(s => `<tr><td style="width:34%"><b style="font-family:var(--sans)">${esc(s.name)}</b><br>${esc(s.source)} · ${esc(s.kind)}</td><td>${ms(s.durationMs)} at +${ms(s.startOffsetMs)}<div style="margin-top:4px">${tags(s.tags)}</div></td></tr>`).join('')}</tbody></table>${e.droppedSpans ? `<p class="trunc">${plural(e.droppedSpans, 'more span')} dropped: the per-request limit was reached.</p>` : ''}`;
+}
+
+// ------------------------------------------------------------ events
+function debounce(fn, wait) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); }; }
+
+document.addEventListener('click', ev => {
+  const t = ev.target.closest('[data-open],[data-close],[data-tab],[data-toggle],[data-copy],[data-route]');
+  if (!t) return;
+  if (t.dataset.close !== undefined) closeDrawer();
+  else if (t.dataset.tab) { S.tab = t.dataset.tab; drawDrawer(); }
+  else if (t.dataset.copy) navigator.clipboard?.writeText(t.dataset.copy);
+  else if (t.dataset.toggle) { S.openEx = S.openEx === t.dataset.toggle ? null : t.dataset.toggle; S.sig = ''; renderView(false); }
+  else if (t.dataset.route) { S.f = { ...S.f, q: t.dataset.route }; location.hash = '#/requests'; }
+  else if (t.dataset.open) {
+    const h = '#/requests/' + encodeURIComponent(t.dataset.open);
+    // On the requests list, open in place without re-rendering it; from other pages, navigate to it.
+    if (S.route === 'requests') { history.replaceState(null, '', h); openDrawer(t.dataset.open); } else location.hash = h;
+  }
+});
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && !$('#drawer').hidden) closeDrawer();
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('tr[data-open],tr[data-toggle],tr[data-route]')) { ev.preventDefault(); ev.target.click(); }
+});
+window.addEventListener('hashchange', navigate);
+$('#live').onclick = () => { S.live = !S.live; $('#live').setAttribute('aria-pressed', S.live); $('#live span').textContent = S.live ? 'Live' : 'Paused'; };
+$('#clear').onclick = async () => {
+  if (!confirm('Remove every stored request, log and exception from memory?')) return;
+  await fetch(new URL('api/clear', BASE), { method: 'POST', headers: { 'X-ApiPulse': '1' } });
+  S.items = []; S.sig = ''; closeDrawer(); renderView(true);
+};
+
+setInterval(() => { if (S.live && !document.hidden) renderView(false); }, 2000);
+
+api('info').then(i => { S.info = i; $('#svc').textContent = [i.service, i.environment].filter(Boolean).join(' · '); }).catch(() => {});
+if (!location.hash) history.replaceState(null, '', '#/requests');
+navigate();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>ApiPulse</RootNamespace>
+    <AssemblyName>ApiPulse.AspNetCore</AssemblyName>
+
+    <!-- NuGet metadata -->
+    <PackageId>ApiPulse.AspNetCore</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>ApiPulse contributors</Authors>
+    <Description>Drop-in API monitoring and analytics for ASP.NET Core: request metrics, logs, traces and errors captured with one line of setup. Works with minimal APIs and controllers.</Description>
+    <PackageTags>aspnetcore;monitoring;analytics;apm;observability;logging;tracing;api;middleware</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Quality gates: every public member is documented and nullable-clean. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarningsAsErrors>$(WarningsAsErrors);nullable;CS1591</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The SDK has no package dependencies: everything comes from the shared framework. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Dashboard\index.html" LogicalName="ApiPulse.Dashboard.index.html" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <InternalsVisibleTo Include="ApiPulse.Tests" />
+  </ItemGroup>
+
+</Project>

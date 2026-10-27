@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+.vs/
+.idea/
+TestResults/
+*.nupkg
+artifacts/
+/.superpowers/brainstorm
