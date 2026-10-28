@@ -8,27 +8,127 @@ ASP.NET Core shared framework.
 
 > `ApiPulse` is a working name. Rename the namespace, assembly and package id (`src/ApiPulse/ApiPulse.csproj`) to taste.
 
-## Quick start
+## Getting started
+
+Five minutes, one package, one line of code. You need the .NET 8, 9 or 10 SDK and an ASP.NET Core project (minimal APIs or
+controllers, it makes no difference).
+
+**The local dashboard is the default.** With no setting at all, ApiPulse captures every request in memory and serves the
+dashboard at `/apipulse` while you develop. Exporting to a backend is an extra you opt into (step 6).
+
+### 1. Add the package
+
+From a package feed:
 
 ```bash
 dotnet add package ApiPulse.AspNetCore
 ```
 
+Or, while the package is not published anywhere, from this repository. Pick one:
+
+```bash
+# a. reference the project directly
+dotnet add <your-project> reference <path-to>/fleet/src/ApiPulse/ApiPulse.csproj
+
+# b. or pack it once into a local folder and use that folder as a NuGet source
+dotnet pack <path-to>/fleet/src/ApiPulse -c Release -o ./local-packages
+dotnet add <your-project> package ApiPulse.AspNetCore --source ./local-packages
+```
+
+### 2. Register it
+
 ```csharp
+using ApiPulse;
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddApiPulse();
+builder.Services.AddApiPulse();          // the whole integration
 
 var app = builder.Build();
 app.MapGet("/orders/{id}", (int id) => Results.Ok(new { id }));
 app.Run();
 ```
 
-Run the app in Development, send a request, and open **`/apipulse`**. That is the whole integration. There is no
-`app.UseApiPulse()` to remember: the middleware registers itself as the outermost component of the pipeline.
+There is no `app.UseApiPulse()` to remember: the middleware registers itself as the outermost component of the pipeline.
+Controllers need nothing extra.
 
-To also ship events to a backend, add `o.Endpoint` and `o.ApiKey` (or the `APIPULSE_ENDPOINT` and `APIPULSE_API_KEY`
-environment variables). See [Exporting events](#exporting-events).
+### 3. Run in Development
+
+The dashboard is only served when the app runs in the **Development** environment. Visual Studio, Rider and `dotnet run` with
+a launch profile do that for you. If your project has no `Properties/launchSettings.json`, set the variable yourself:
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = 'Development'; dotnet run      # PowerShell
+```
+```bash
+ASPNETCORE_ENVIRONMENT=Development dotnet run                # bash, zsh
+```
+
+At startup the log confirms it:
+
+```
+info: ApiPulse.Startup[0] ApiPulse dashboard available at /apipulse/ (keeping the last 1000 requests in memory)
+```
+
+If that line is missing, or you get a `403`, see [The dashboard answers 403](#the-dashboard-answers-403).
+
+### 4. Look at your traffic
+
+Send a few requests to your API, then open **`http://localhost:<port>/apipulse`** (the port is in the `Now listening on:` line
+of the startup output). Requests appear within a couple of seconds. Click one to see its timeline: the logs, outgoing calls and
+exceptions it produced, in order. See [Local dashboard](#local-dashboard) for what each page shows.
+
+To see everything at once, run the bundled sample. It already has a launch profile, so no environment variable is needed:
+
+```bash
+dotnet run --project samples/ApiPulse.Sample      # opens http://localhost:5080/apipulse/
+```
+
+Then call `/api/v1/orders/1`, `/api/v1/crash` or `/api/v1/outgoing` and watch them show up.
+
+### 5. Adjust it (all optional)
+
+The defaults are meant to be kept. When you need to change something, use whichever layer suits you, and a later layer
+overrides an earlier one:
+
+```csharp
+builder.Services.AddApiPulse(o =>                           // in code
+{
+    o.ExcludedPaths.Add("/internal/*");                     // health checks and /apipulse are already excluded
+    o.MaskBodyFields.Add("nationalId");                     // passwords, tokens, cards... are masked by default
+    o.ConsumerResolver = ctx => new ApiConsumer(ctx.User.Identity?.Name ?? "anonymous");
+});
+```
+
+```json
+{ "ApiPulse": { "SamplingRate": 0.25, "ExcludedPaths": [ "/internal/*" ] } }
+```
+
+```bash
+APIPULSE_SAMPLING_RATE=0.25                                  # environment variable
+```
+
+See [Configuration](#configuration) for every setting.
+
+### 6. Ship events to your own backend (optional)
+
+Off by default: the dashboard works on its own, and nothing leaves your machine until you set an endpoint. To also send events to a backend, give the SDK an endpoint (and a key if your backend needs
+one). This works in every environment, including Production:
+
+```bash
+APIPULSE_ENDPOINT=https://ingest.example.com/v1/events
+APIPULSE_API_KEY=<your key>
+```
+
+See [Exporting events](#exporting-events) for the payload, batching and retries.
+
+### Before you deploy
+
+* Nothing to turn off: outside Development the dashboard answers `403` and request or response bodies are not captured unless
+  you ask for them.
+* To open the dashboard in staging or production on purpose, set `Dashboard.Authorize` in code and restrict it to your own
+  people (see [Local dashboard](#local-dashboard)).
+* To disable the SDK without a rebuild, set `APIPULSE_ENABLED=false`.
 
 ## Local dashboard
 

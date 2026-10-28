@@ -7,12 +7,13 @@
 
     <!-- NuGet metadata -->
     <PackageId>ApiPulse.AspNetCore</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>ApiPulse contributors</Authors>
     <Description>Drop-in API monitoring and analytics for ASP.NET Core: request metrics, logs, traces and errors captured with one line of setup. Works with minimal APIs and controllers.</Description>
     <PackageTags>aspnetcore;monitoring;analytics;apm;observability;logging;tracing;api;middleware</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/JaphetSamuel/apipulse</PackageProjectUrl>
 
     <!-- Quality gates: every public member is documented and nullable-clean. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
