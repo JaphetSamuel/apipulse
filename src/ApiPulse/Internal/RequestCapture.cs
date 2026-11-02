@@ -33,6 +33,7 @@ internal sealed class RequestCapture
     private List<ExceptionInfo>? _exceptions;
     private List<Exception>? _seenExceptions;
     private List<SpanInfo>? _spans;
+    private List<(SpanInfo Span, OutgoingExchange Exchange)>? _exchanges;
     private Dictionary<string, string>? _tags;
     private ApiConsumer? _consumer;
 
@@ -251,6 +252,13 @@ internal sealed class RequestCapture
             Tags = BuildSpanTags(activity, masker),
         };
 
+        // Set when this span belongs to an outgoing call whose headers and bodies are being captured (see OutgoingCaptureHandler).
+        var exchange = OutgoingScope.Current;
+        if (exchange is not null && !exchange.TryLink())
+        {
+            exchange = null;
+        }
+
         lock (_gate)
         {
             if (Completed)
@@ -266,6 +274,10 @@ internal sealed class RequestCapture
             }
 
             _spans.Add(span);
+            if (exchange is not null)
+            {
+                (_exchanges ??= new List<(SpanInfo, OutgoingExchange)>()).Add((span, exchange));
+            }
         }
     }
 
@@ -314,8 +326,10 @@ internal sealed class RequestCapture
     /// <summary>Copies the collected data into <paramref name="evt"/> and closes the capture to further additions.</summary>
     public void CompleteInto(RequestEvent evt)
     {
+        (SpanInfo Span, OutgoingExchange Exchange)[] exchanges;
         lock (_gate)
         {
+            exchanges = _exchanges?.ToArray() ?? Array.Empty<(SpanInfo, OutgoingExchange)>();
             Completed = true;
             evt.Tags = _tags is { Count: > 0 } ? new Dictionary<string, string>(_tags) : null;
             evt.Exceptions = _exceptions is { Count: > 0 } ? new List<ExceptionInfo>(_exceptions) : null;
@@ -324,6 +338,12 @@ internal sealed class RequestCapture
             evt.Spans = _spans is { Count: > 0 } ? new List<SpanInfo>(_spans) : null;
             evt.DroppedSpans = DroppedSpans;
             evt.Consumer = _consumer;
+        }
+
+        // Masking runs outside the lock: it can be slow on large bodies and the capture is already closed to new spans.
+        foreach (var (span, exchange) in exchanges)
+        {
+            exchange.ApplyTo(span, Settings.Masker);
         }
     }
 }

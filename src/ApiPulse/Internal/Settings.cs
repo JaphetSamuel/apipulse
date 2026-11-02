@@ -31,6 +31,7 @@ internal sealed class ApiPulseSettings
         var autoBodies = DashboardActive && IsDevelopment;
         CaptureRequestBody = options.CaptureRequestBody ?? autoBodies;
         CaptureResponseBody = options.CaptureResponseBody ?? autoBodies;
+        CaptureOutgoingBodies = options.CaptureOutgoingBodies ?? autoBodies;
 
         // The dashboard's own traffic must never show up in itself.
         ExcludedPaths = new PathMatcher(options.ExcludedPaths.Concat(new[] { DashboardPath, DashboardPath + "/*" }));
@@ -90,6 +91,9 @@ internal sealed class ApiPulseSettings
 
     /// <summary>The effective value: the explicit option, or the Development-with-dashboard default.</summary>
     public bool CaptureResponseBody { get; }
+
+    /// <summary>The effective value: the explicit option, or the Development-with-dashboard default.</summary>
+    public bool CaptureOutgoingBodies { get; }
 
     public Masker Masker { get; }
 

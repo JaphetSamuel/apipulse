@@ -60,9 +60,13 @@ app.MapGet("/api/v1/outgoing", async (IHttpClientFactory factory, HttpContext co
         await Task.Delay(25);
     }
 
-    var upstream = await factory.CreateClient().GetStringAsync($"{context.Request.Scheme}://{context.Request.Host}/api/v1/orders/1?token=abc");
+    // Clients from IHttpClientFactory also have their headers and bodies recorded: open the call in the dashboard to read them.
+    var baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
+    var client = factory.CreateClient();
+    var upstream = await client.GetStringAsync($"{baseUrl}/api/v1/orders/1?token=abc");
+    var created = await client.PostAsJsonAsync($"{baseUrl}/api/v1/orders", new NewOrder("978-3-16-148410-0", 2));
     logger.LogInformation("Prices received");
-    return Results.Ok(new { upstream });
+    return Results.Ok(new { upstream, created = created.StatusCode });
 });
 
 app.MapGet("/health", () => Results.Ok("healthy")); // excluded by default

@@ -197,6 +197,27 @@ public sealed class SpanInfo
 
     /// <summary>Selected tags (standard HTTP, URL and database tags). Sensitive names are masked.</summary>
     public Dictionary<string, string?>? Tags { get; set; }
+
+    /// <summary>
+    /// Headers of the outgoing HTTP request, with sensitive values masked. Only set for calls made through <c>IHttpClientFactory</c>
+    /// clients, see <see cref="ApiPulseOptions.CaptureOutgoingBodies"/>.
+    /// </summary>
+    public Dictionary<string, string>? RequestHeaders { get; set; }
+
+    /// <summary>Headers of the response to the outgoing HTTP request, with sensitive values masked.</summary>
+    public Dictionary<string, string>? ResponseHeaders { get; set; }
+
+    /// <summary>Captured body of the outgoing request (text, masked), if outgoing body capture is enabled and the content type is eligible.</summary>
+    public string? RequestBody { get; set; }
+
+    /// <summary><see langword="true"/> when <see cref="RequestBody"/> was cut at the configured maximum size.</summary>
+    public bool RequestBodyTruncated { get; set; }
+
+    /// <summary>Captured body of the response to the outgoing request (text, masked), if outgoing body capture is enabled and the content type is eligible.</summary>
+    public string? ResponseBody { get; set; }
+
+    /// <summary><see langword="true"/> when <see cref="ResponseBody"/> was cut at the configured maximum size.</summary>
+    public bool ResponseBodyTruncated { get; set; }
 }
 
 /// <summary>Identity of the SDK that produced a batch.</summary>

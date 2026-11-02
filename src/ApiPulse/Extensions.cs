@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -72,6 +73,7 @@ public static class ApiPulseServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, ApiPulseStartupService>());
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<ApiPulseExporter>()); // guarded by the marker above
 
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpMessageHandlerBuilderFilter, OutgoingCaptureFilter>());
         services.AddHttpClient(ApiPulseDefaults.HttpClientName)
             .ConfigureHttpClient(client => client.Timeout = Timeout.InfiniteTimeSpan) // timeouts are enforced per attempt by the sink
             .RemoveAllLoggers();

@@ -7,7 +7,7 @@
 
     <!-- NuGet metadata -->
     <PackageId>ApiPulse.AspNetCore</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Authors>ApiPulse contributors</Authors>
     <Description>Drop-in API monitoring and analytics for ASP.NET Core: request metrics, logs, traces and errors captured with one line of setup. Works with minimal APIs and controllers.</Description>
     <PackageTags>aspnetcore;monitoring;analytics;apm;observability;logging;tracing;api;middleware</PackageTags>

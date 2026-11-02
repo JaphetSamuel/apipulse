@@ -155,6 +155,15 @@ public sealed class ApiPulseOptions
     /// </summary>
     public IList<string> SpanSources { get; } = new List<string>(ApiPulseDefaults.SpanSources);
 
+    /// <summary>
+    /// Capture the bodies of outgoing HTTP calls (request and response, up to <see cref="MaxBodySize"/>) and attach them, with the
+    /// headers, to the span of the call. Works for clients created by <c>IHttpClientFactory</c> (<c>AddHttpClient</c>); a bare
+    /// <c>new HttpClient()</c> only produces a span without payloads. <see langword="null"/> (the default) means automatic, like
+    /// <see cref="CaptureRequestBody"/>. Headers follow <see cref="CaptureRequestHeaders"/> and <see cref="CaptureResponseHeaders"/>;
+    /// masking applies either way.
+    /// </summary>
+    public bool? CaptureOutgoingBodies { get; set; }
+
     /// <summary>Maximum number of spans kept per request. Default 50.</summary>
     public int MaxSpansPerRequest { get; set; } = 50;
 

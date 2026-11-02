@@ -3,6 +3,7 @@ namespace ApiPulse.Internal;
 /// <summary>Bounded buffer holding the first bytes of a body plus the total number of bytes that passed through.</summary>
 internal sealed class BodyBuffer
 {
+    private readonly object _gate = new();
     private readonly int _limit;
     private byte[] _data = Array.Empty<byte>();
     private int _length;
@@ -21,26 +22,42 @@ internal sealed class BodyBuffer
     /// <summary>Counts the bytes and, when <paramref name="capture"/> is set, keeps those that fit under the limit.</summary>
     public void Observe(ReadOnlySpan<byte> bytes, bool capture)
     {
-        Total += bytes.Length;
-        if (!capture || bytes.IsEmpty)
+        lock (_gate)
         {
-            return;
-        }
+            Total += bytes.Length;
+            if (!capture || bytes.IsEmpty)
+            {
+                return;
+            }
 
-        var room = _limit - _length;
-        if (room <= 0)
+            var room = _limit - _length;
+            if (room <= 0)
+            {
+                return;
+            }
+
+            var take = Math.Min(room, bytes.Length);
+            if (_length + take > _data.Length)
+            {
+                Array.Resize(ref _data, Math.Min(_limit, Math.Max(_length + take, Math.Max(256, _data.Length * 2))));
+            }
+
+            bytes[..take].CopyTo(_data.AsSpan(_length));
+            _length += take;
+        }
+    }
+
+    /// <summary>
+    /// Copies what was captured so far. Unlike <see cref="Captured"/> this is safe while another thread is still observing, which
+    /// matters for outgoing calls whose response may be read after the request that made them has finished.
+    /// </summary>
+    public byte[] Snapshot(out bool truncated)
+    {
+        lock (_gate)
         {
-            return;
+            truncated = Total > _length;
+            return _data.AsSpan(0, _length).ToArray();
         }
-
-        var take = Math.Min(room, bytes.Length);
-        if (_length + take > _data.Length)
-        {
-            Array.Resize(ref _data, Math.Min(_limit, Math.Max(_length + take, Math.Max(256, _data.Length * 2))));
-        }
-
-        bytes[..take].CopyTo(_data.AsSpan(_length));
-        _length += take;
     }
 }
 
@@ -52,11 +69,35 @@ internal sealed class CapturingReadStream : Stream
 {
     private readonly Stream _inner;
     private readonly BodyBuffer _buffer;
+    private readonly bool _ownsInner;
 
-    public CapturingReadStream(Stream inner, BodyBuffer buffer)
+    // ownsInner: dispose the inner stream together with this one. Off for the incoming request body, which the server owns; on for
+    // outgoing response streams, where disposing the stream is what releases the connection.
+    public CapturingReadStream(Stream inner, BodyBuffer buffer, bool ownsInner = false)
     {
         _inner = inner;
         _buffer = buffer;
+        _ownsInner = ownsInner;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && _ownsInner)
+        {
+            _inner.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        if (_ownsInner)
+        {
+            await _inner.DisposeAsync().ConfigureAwait(false);
+        }
+
+        await base.DisposeAsync().ConfigureAwait(false);
     }
 
     public override bool CanRead => true;

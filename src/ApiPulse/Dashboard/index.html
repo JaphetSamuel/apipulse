@@ -130,6 +130,7 @@ h2{font-size:13.5px;margin:20px 0 8px;font-weight:650}
 pre{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin:0 0 14px;overflow:auto;font-size:12px;line-height:1.5;max-height:420px;white-space:pre-wrap;word-break:break-word}
 .hdrs{width:100%;margin-bottom:16px}.hdrs td{padding:5px 0;border:0;font-family:var(--mono);font-size:12px;word-break:break-all}.hdrs td:first-child{color:var(--mute);width:38%;padding-right:12px}
 .trunc{color:var(--warn);font-size:12px;margin:-8px 0 14px}
+details.pl{margin-top:8px;font-family:var(--sans)}details.pl>summary{cursor:pointer;color:var(--brand-ink);font-weight:600}details.pl[open]>summary{margin-bottom:6px}
 
 .tl{border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .tl .ax{display:grid;grid-template-columns:minmax(120px,36%) 1fr;color:var(--mute);font-size:11.5px;border-bottom:1px solid var(--line);background:var(--soft)}
@@ -207,7 +208,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BASE = location.origin + location.pathname.replace(/[^/]*$/, '');
 const S = { route: 'requests', id: null, live: true, f: { status: '', method: '', errors: false, q: '' }, lf: { level: '', q: '' }, sf: { q: '' },
-            items: [], latest: 0, total: 0, hasMore: false, info: null, window: 60, openEx: null, tab: 'timeline', detail: null, sig: '' };
+            items: [], latest: 0, total: 0, hasMore: false, info: null, window: 60, openEx: null, openSpan: null, tab: 'timeline', detail: null, sig: '' };
 
 async function api(path, params = {}) {
   const u = new URL('api/' + path, BASE);
@@ -433,8 +434,8 @@ async function viewSpans(v, full) {
   $('#list').innerHTML = !r.items.length ? empty('No outgoing calls', 'HTTP calls, database calls and custom spans made while handling a request are listed here.')
     : `<table><thead><tr><th>Time</th><th>Operation</th><th class="dur">Duration</th></tr></thead><tbody>${r.items.map(s => {
       const target = s.tags?.['url.full'] || s.tags?.['http.url'] || (s.tags?.['server.address'] ? s.tags['server.address'] : '') || s.tags?.['db.system'] || '';
-      return `<tr data-open="${esc(s.requestId)}" tabindex="0"><td class="t">${clock(s.time)}</td>
-        <td><b>${esc(s.name)}</b> ${s.status === 'Error' ? '<span class="chip s5">error</span>' : ''}<div class="meta">${target ? `<span class="mono">${esc(target)}</span>` : ''}<span>${esc(s.kind)}</span><span>${esc(s.source)}</span><span class="mono">in ${esc(s.request)}</span></div></td>
+      return `<tr data-open="${esc(s.requestId)}" data-open-tab="spans" data-open-span="${esc(s.spanId)}" tabindex="0"><td class="t">${clock(s.time)}</td>
+        <td><b>${esc(s.name)}</b> ${s.status === 'Error' ? '<span class="chip s5">error</span>' : ''}<div class="meta">${target ? `<span class="mono">${esc(target)}</span>` : ''}${s.hasPayload ? '<span>request &amp; response</span>' : ''}<span>${esc(s.kind)}</span><span>${esc(s.source)}</span><span class="mono">in ${esc(s.request)}</span></div></td>
         <td class="dur ${durCls(s.durationMs)}">${ms(s.durationMs)}</td></tr>`; }).join('')}</tbody></table>`;
 }
 
@@ -517,8 +518,17 @@ function exTab(e) {
   const one = x => `<div class="ex-card"><h4>${esc(x.type)} ${x.handled ? '<span class="chip s4">handled</span>' : '<span class="chip s5">unhandled</span>'}</h4><div class="in">${esc(x.message)}<pre>${esc(x.stackTrace || 'No stack trace')}</pre>${x.inner ? `<div class="meta"><span>Caused by</span></div>${one(x.inner)}` : ''}</div></div>`;
   return e.exceptions.map(one).join('');
 }
+const noOutgoingBody = '<p class="tl-note">No body captured. Enable CaptureOutgoingBodies to see payloads of outgoing calls made through IHttpClientFactory.</p>';
+const outBody = (text, trunc, type) => text == null ? noOutgoingBody : bodyBlock(text, trunc, type);
+// Request and response of an outgoing call, as captured by the SDK's HttpClient handler. Absent for custom spans and database calls.
+function payload(s) {
+  if (!s.requestHeaders && !s.responseHeaders && s.requestBody == null && s.responseBody == null) return '';
+  return `<details class="pl" ${S.openSpan === s.spanId ? 'open' : ''}><summary>Request &amp; response</summary>
+    <h2>Request headers</h2>${hdrs(s.requestHeaders)}<h2>Request body</h2>${outBody(s.requestBody, s.requestBodyTruncated, s.requestHeaders?.['Content-Type'])}
+    <h2>Response headers</h2>${hdrs(s.responseHeaders)}<h2>Response body</h2>${outBody(s.responseBody, s.responseBodyTruncated, s.responseHeaders?.['Content-Type'])}</details>`;
+}
 function spansTab(e) {
-  return `<table class="hdrs"><tbody>${e.spans.map(s => `<tr><td style="width:34%"><b style="font-family:var(--sans)">${esc(s.name)}</b><br>${esc(s.source)} · ${esc(s.kind)}</td><td>${ms(s.durationMs)} at +${ms(s.startOffsetMs)}<div style="margin-top:4px">${tags(s.tags)}</div></td></tr>`).join('')}</tbody></table>${e.droppedSpans ? `<p class="trunc">${plural(e.droppedSpans, 'more span')} dropped: the per-request limit was reached.</p>` : ''}`;
+  return `<table class="hdrs"><tbody>${e.spans.map(s => `<tr><td style="width:34%"><b style="font-family:var(--sans)">${esc(s.name)}</b><br>${esc(s.source)} · ${esc(s.kind)}</td><td>${ms(s.durationMs)} at +${ms(s.startOffsetMs)}<div style="margin-top:4px">${tags(s.tags)}</div>${payload(s)}</td></tr>`).join('')}</tbody></table>${e.droppedSpans ? `<p class="trunc">${plural(e.droppedSpans, 'more span')} dropped: the per-request limit was reached.</p>` : ''}`;
 }
 
 // ------------------------------------------------------------ events
@@ -527,6 +537,8 @@ function debounce(fn, wait) { let t; return (...a) => { clearTimeout(t); t = set
 document.addEventListener('click', ev => {
   const t = ev.target.closest('[data-open],[data-close],[data-tab],[data-toggle],[data-copy],[data-route]');
   if (!t) return;
+  // From the outgoing calls page, land on that call's payload rather than on the request's timeline.
+  if (t.dataset.open) { if (t.dataset.openTab) S.tab = t.dataset.openTab; S.openSpan = t.dataset.openSpan || null; }
   if (t.dataset.close !== undefined) closeDrawer();
   else if (t.dataset.tab) { S.tab = t.dataset.tab; drawDrawer(); }
   else if (t.dataset.copy) navigator.clipboard?.writeText(t.dataset.copy);

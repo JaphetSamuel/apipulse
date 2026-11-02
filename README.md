@@ -161,7 +161,8 @@ builder.Services.AddApiPulse(o =>
   exported events. `Clear entries` empties it.
 * **Payloads are shown in Development**, masked like everything else. `CaptureRequestBody` / `CaptureResponseBody` default to
   *automatic*: on while the dashboard is active in Development, off in every other environment. Set either to `false` to
-  hide payloads even in Development, or to `true` to capture them elsewhere. An explicit value always wins.
+  hide payloads even in Development, or to `true` to capture them elsewhere. An explicit value always wins. The same goes for
+  `CaptureOutgoingBodies`, which controls the payloads of outgoing calls (see [Traces](#traces)).
 * The dashboard's own traffic is excluded from monitoring automatically, and it works alongside `Endpoint` or custom sinks.
 * The page is a single embedded file: no CDN, no build step, works offline. It escapes everything it displays and ships a strict
   Content-Security-Policy. Turn it off with `Dashboard.Enabled = false` or `APIPULSE_DASHBOARD=false`.
@@ -240,6 +241,7 @@ Unparseable values are ignored. Out-of-range values are clamped. **The SDK never
 | `AutoRegisterMiddleware` | `true` | Set `false` and call `app.UseApiPulse()` to choose the position yourself |
 | `CaptureRequestHeaders` / `CaptureResponseHeaders` / `CaptureQueryString` | `true` | |
 | `CaptureRequestBody` / `CaptureResponseBody` | automatic (`null`) | On in Development while the dashboard is active, off elsewhere. An explicit `true`/`false` always wins. Bodies often contain personal data |
+| `CaptureOutgoingBodies` | automatic (`null`) | Request and response bodies of outgoing `HttpClient` calls, shown on the call's span. Same automatic rule as above. Headers follow `CaptureRequestHeaders` / `CaptureResponseHeaders` |
 | `MaxBodySize` | 32 KiB | Per body. Larger bodies are truncated and flagged; sizes stay exact |
 | `BodyContentTypes` | json, xml, `text/*`, form-urlencoded | Never images, multipart uploads or compressed bodies |
 | `ClientIp` | `Full` | `Anonymized` zeroes the host part, `None` records nothing |
@@ -363,6 +365,9 @@ Every event carries the W3C `traceId`/`spanId` (and `parentSpanId` when a `trace
 the request are attached automatically:
 
 * Outgoing `HttpClient` calls. On .NET 9 and 10 these carry method, status, host and URL; on .NET 8 the runtime emits a legacy activity without standard tags.
+  For clients created by `IHttpClientFactory` (`AddHttpClient`, typed clients, `CreateClient()`), the span also carries the request and
+  response headers and, when `CaptureOutgoingBodies` is on, both bodies, masked with the same rules as incoming traffic. In the dashboard,
+  open the call from *Outgoing calls* or from the *Spans* tab of a request. A bare `new HttpClient()` yields the span only: the SDK cannot see its messages.
 * Database and other sources listed in `SpanSources` (default: `System.Net.Http`, `OpenTelemetry.Instrumentation.*`, `Npgsql`, `Microsoft.EntityFrameworkCore`). Wildcards are allowed.
 * Your own spans: `using var span = ApiPulseActivitySource.Instance.StartActivity("price-lookup");`
 

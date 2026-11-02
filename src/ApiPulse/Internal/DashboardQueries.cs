@@ -336,6 +336,8 @@ internal static class DashboardQueries
                 rows.Add((time, new
                 {
                     time,
+                    spanId = span.SpanId,
+                    hasPayload = span.RequestBody is not null || span.ResponseBody is not null || span.RequestHeaders is not null || span.ResponseHeaders is not null,
                     name = span.Name,
                     source = span.Source,
                     kind = span.Kind,
